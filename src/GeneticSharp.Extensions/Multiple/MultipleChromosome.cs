@@ -11,7 +11,7 @@ namespace GeneticSharp.Extensions.Multiple
     /// Compound chromosome to artificially increase genetics diversity by evolving a list of chromosome instead of just one.
     /// Sub-genes are inlined into a single compound list of genes
     /// </summary>
-    public class MultipleChromosome : ChromosomeBase
+    public class MultipleChromosome : ChromosomeBase, IBinaryChromosome
     {
 
         /// <summary>
@@ -70,6 +70,19 @@ namespace GeneticSharp.Extensions.Multiple
                 Chromosomes[i / Chromosomes[0].Length].ReplaceGene(i - ((i / Chromosomes[0].Length) * Chromosomes[0].Length), GetGene(i));
             }
 
+        }
+
+        /// <summary>
+        /// Flips the gene.
+        /// </summary>
+        /// <remarks>>
+        /// If gene's value is 0, the it will be flip to 1 and vice-versa.</remarks>
+        /// <param name="index">The gene index.</param>
+        public virtual void FlipGene(int index)
+        {
+            var value = (bool)GetGene(index).Value;
+
+            ReplaceGene(index, new Gene(value ? 1 : 0));
         }
     }
 }
