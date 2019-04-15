@@ -112,6 +112,7 @@ namespace GeneticSharp.Domain
             Reinsertion = new ElitistReinsertion();
             Termination = new GenerationNumberTermination(1);
 
+            FitnessIsIdempotent = true;
             CrossoverProbability = DefaultCrossoverProbability;
             MutationProbability = DefaultMutationProbability;
             TimeEvolving = TimeSpan.Zero;
@@ -126,6 +127,11 @@ namespace GeneticSharp.Domain
         /// Occurs when generation ran.
         /// </summary>
         public event EventHandler GenerationRan;
+
+        /// <summary>
+        /// Occurs before fitness start evaluating.
+        /// </summary>
+        public event EventHandler PopulationPrepared;
 
         /// <summary>
         /// Occurs when termination reached.
@@ -154,6 +160,11 @@ namespace GeneticSharp.Domain
         /// Gets the fitness function.
         /// </summary>
         public IFitness Fitness { get; private set; }
+
+        /// <summary>
+        /// Gets or sets the fitness function idempotent property (this will cause that fitness function will evaluate each time for the same chromosome).
+        /// </summary>
+        public bool FitnessIsIdempotent { get; set; }
 
         /// <summary>
         /// Gets or sets the selection operator.
@@ -374,10 +385,13 @@ namespace GeneticSharp.Domain
         /// <returns><c>true</c>, if current generation was ended, <c>false</c> otherwise.</returns>
         private bool EndCurrentGeneration()
         {
+            var handler = PopulationPrepared;
+            handler?.Invoke(this, EventArgs.Empty);
+
             EvaluateFitness();
             Population.EndCurrentGeneration();
 
-            var handler = GenerationRan;
+            handler = GenerationRan;
             handler?.Invoke(this, EventArgs.Empty);
 
             if (Termination.HasReached(this))
@@ -406,6 +420,12 @@ namespace GeneticSharp.Domain
         {
             try
             {
+                if (!FitnessIsIdempotent)
+                    foreach (var chromosome in Population.CurrentGeneration.Chromosomes)
+                    {
+                        chromosome.Fitness = null;
+                    } 
+
                 var chromosomesWithoutFitness = Population.CurrentGeneration.Chromosomes.Where(c => !c.Fitness.HasValue).ToList();
 
                 for (int i = 0; i < chromosomesWithoutFitness.Count; i++)
